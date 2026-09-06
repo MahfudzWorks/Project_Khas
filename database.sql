@@ -42,24 +42,3 @@ CREATE TABLE IF NOT EXISTS `keuangan` (
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Data Dummy Anggota
-INSERT INTO `anggota` (`nama`, `jenis_kelamin`, `tempat_lahir`, `tanggal_lahir`, `alamat`, `no_hp`, `jabatan`, `status`, `tahun_bergabung`) VALUES
-('Ahmad Fauzi', 'Laki-laki', 'Jakarta', '2000-05-12', 'Jl. Pemuda No. 12 RT 01/02', '081234567890', 'Ketua', 'Aktif', 2021),
-('Siti Nurhaliza', 'Perempuan', 'Bandung', '2001-08-22', 'Jl. Merdeka No. 45 RT 02/02', '082198765432', 'Sekretaris', 'Aktif', 2021),
-('Budi Santoso', 'Laki-laki', 'Surakarta', '1999-11-03', 'Jl. Melati No. 08 RT 03/02', '085712349876', 'Bendahara', 'Aktif', 2022),
-('Rina Rose', 'Perempuan', 'Semarang', '2002-02-14', 'Jl. Mawar No. 19 RT 01/02', '083811223344', 'Koordinator', 'Aktif', 2023),
-('Dodi Prasetyo', 'Laki-laki', 'Yogyakarta', '2003-07-29', 'Jl. Kenanga No. 04 RT 04/02', '089655443322', 'Anggota', 'Tidak Aktif', 2023);
-
--- Data Dummy Kegiatan
-INSERT INTO `kegiatan` (`nama_kegiatan`, `tanggal`, `waktu`, `lokasi`, `penanggung_jawab`, `deskripsi`, `status`) VALUES
-('Rapat Bulanan Pengurus', '2026-09-10', '19:30:00', 'Balai Warga RW 02', 'Siti Nurhaliza', 'Rapat pembahasan program kerja triwulan IV', 'Akan Dilaksanakan'),
-('Kerja Bakti Bersih Desa', '2026-08-17', '07:00:00', 'Lingkungan RW 02', 'Budi Santoso', 'Membersihkan saluran air dan fasilitas umum', 'Selesai'),
-('Lomba 17 Agustus', '2026-08-17', '09:00:00', 'Lapangan Serbaguna', 'Rina Rose', 'Aneka perlombaan menyambut HUT RI', 'Selesai');
-
--- Data Dummy Keuangan
-INSERT INTO `keuangan` (`tanggal`, `jenis`, `kategori`, `keterangan`, `nominal`) VALUES
-('2026-08-01', 'Pemasukan', 'Iuran Anggota', 'Iuran bulanan anggota bulan Agustus', 500000.00),
-('2026-08-05', 'Pemasukan', 'Sponsor', 'Bantuan operasional dari Kelurahan', 2000000.00),
-('2026-08-15', 'Pengeluaran', 'Perlengkapan kegiatan', 'Pembelian hadiah perlombaan 17an', 750000.00),
-('2026-08-17', 'Pengeluaran', 'Konsumsi', 'Konsumsi panitia & peserta kerja bakti', 250000.00);
