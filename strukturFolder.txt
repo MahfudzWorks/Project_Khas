@@ -1,0 +1,39 @@
+Project_Khas/
+│
+├── assets/
+│   ├── css/
+│   │   └── style.css
+│   └── js/
+│       └── script.js
+│
+├── config/
+│   └── database.php
+│
+├── includes/
+│   ├── header.php
+│   ├── navbar.php
+│   └── footer.php
+│
+├── anggota/
+│   ├── index.php
+│   ├── tambah.php
+│   ├── edit.php
+│   ├── detail.php
+│   └── hapus.php
+│
+├── kegiatan/
+│   ├── index.php
+│   ├── tambah.php
+│   ├── edit.php
+│   ├── detail.php
+│   └── hapus.php
+│
+├── keuangan/
+│   ├── index.php
+│   ├── tambah.php
+│   ├── edit.php
+│   └── hapus.php
+│
+├── index.php
+├── database.sql
+└── README.md
