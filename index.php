@@ -1,184 +1,156 @@
 <?php
-require_once 'config/database.php';
+require_once __DIR__ . '/config/database.php';
+$page_title = "Dashboard";
 
-$search = isset($_GET['search']) ? trim($_GET['search']) : '';
-$kategori_filter = isset($_GET['kategori']) ? trim($_GET['kategori']) : '';
+// Fetch Stats
+$total_anggota = $pdo->query("SELECT COUNT(*) FROM anggota")->fetchColumn();
+$anggota_aktif = $pdo->query("SELECT COUNT(*) FROM anggota WHERE status = 'Aktif'")->fetchColumn();
+$total_kegiatan = $pdo->query("SELECT COUNT(*) FROM kegiatan")->fetchColumn();
 
-$totalDataQuery = $pdo->query("SELECT COUNT(*) FROM produk_khas")->fetchColumn();
-$totalStokQuery = $pdo->query("SELECT SUM(stok) FROM produk_khas")->fetchColumn() ?: 0;
-$totalKategoriQuery = $pdo->query("SELECT COUNT(DISTINCT kategori) FROM produk_khas")->fetchColumn();
+$total_pemasukan = $pdo->query("SELECT SUM(nominal) FROM keuangan WHERE jenis = 'Pemasukan'")->fetchColumn() ?: 0;
+$total_pengeluaran = $pdo->query("SELECT SUM(nominal) FROM keuangan WHERE jenis = 'Pengeluaran'")->fetchColumn() ?: 0;
+$saldo_kas = $total_pemasukan - $total_pengeluaran;
 
-$sql = "SELECT * FROM produk_khas WHERE 1=1";
-$params = [];
+// Fetch Recent Data
+$kegiatan_terbaru = $pdo->query("SELECT * FROM kegiatan ORDER BY tanggal DESC, waktu DESC LIMIT 4")->fetchAll();
+$transaksi_terbaru = $pdo->query("SELECT * FROM keuangan ORDER BY tanggal DESC, id DESC LIMIT 4")->fetchAll();
 
-if ($search !== '') {
-  $sql .= " AND (nama_item LIKE :search OR asal_daerah LIKE :search)";
-  $params[':search'] = "\%$search%";
-}
-
-if ($kategori_filter !== '') {
-  $sql .= " AND kategori = :kategori";
-  $params[':kategori'] = $kategori_filter;
-}
-
-$sql .= " ORDER BY id DESC";
-
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$items = $stmt->fetchAll();
-
-$katStmt = $pdo->query("SELECT DISTINCT kategori FROM produk_khas");
-$kategoriList = $katStmt->fetchAll(PDO::FETCH_COLUMN);
-
-include 'includes/header.php';
-include 'includes/navbar.php';
+require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/includes/navbar.php';
 ?>
 
-<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 flex-grow">
-
-  <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between">
-    <div>
-      <h1 class="text-2xl font-bold text-gray-900">Dashboard Catalog</h1>
-      <p class="text-sm text-gray-600">Kelola informasi produk dan kekayaan khas daerah secara ringkas.</p>
-    </div>
-    <a href="tambah.php" class="mt-4 md:mt-0 inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg shadow-sm transition">
-      <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-      </svg>
-      Tambah Data Baru
-    </a>
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow">
+  <!-- Header Page -->
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold text-gray-900">Dashboard Administrasi</h1>
+    <p class="text-gray-600 text-sm">Selamat datang di Sistem Informasi Karang Taruna <strong>Project_KHAS</strong>.</p>
   </div>
 
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-    <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+  <!-- Ringkasan Cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-center justify-between">
       <div>
-        <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider">Total Item</p>
-        <p class="text-2xl font-extrabold text-gray-800 mt-1"><?= $totalDataQuery; ?></p>
-      </div>
-      <div class="p-3 bg-indigo-50 text-indigo-600 rounded-lg">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-        </svg>
-      </div>
-    </div>
-
-    <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
-      <div>
-        <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider">Total Stok</p>
-        <p class="text-2xl font-extrabold text-emerald-600 mt-1"><?= number_format($totalStokQuery); ?></p>
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Anggota</p>
+        <p class="text-2xl font-black text-gray-900 mt-1"><?= $total_anggota ?></p>
+        <p class="text-xs text-emerald-600 font-medium mt-1"><?= $anggota_aktif ?> Aktif</p>
       </div>
       <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
         </svg>
       </div>
     </div>
 
-    <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-center justify-between">
       <div>
-        <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider">Kategori Aktif</p>
-        <p class="text-2xl font-extrabold text-blue-600 mt-1"><?= $totalKategoriQuery; ?></p>
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Anggota Aktif</p>
+        <p class="text-2xl font-black text-emerald-600 mt-1"><?= $anggota_aktif ?></p>
+        <p class="text-xs text-gray-500 mt-1">Pengurus & Anggota</p>
       </div>
-      <div class="p-3 bg-blue-50 text-blue-600 rounded-lg">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 11h.01M7 15h.01M11 7h8M11 11h8M11 15h8"></path>
+      <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-center justify-between">
+      <div>
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Kegiatan</p>
+        <p class="text-2xl font-black text-gray-900 mt-1"><?= $total_kegiatan ?></p>
+        <p class="text-xs text-gray-500 mt-1">Terjadwal & Selesai</p>
+      </div>
+      <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-center justify-between">
+      <div>
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Saldo Kas</p>
+        <p class="text-xl font-black text-emerald-700 mt-1"><?= format_rupiah($saldo_kas) ?></p>
+        <p class="text-xs text-gray-500 mt-1">Masuk: <?= format_rupiah($total_pemasukan) ?></p>
+      </div>
+      <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       </div>
     </div>
   </div>
 
-  <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6">
-    <form method="GET" action="index.php" class="flex flex-col sm:flex-row gap-3">
-      <div class="flex-grow">
-        <input type="text" name="search" value="<?= htmlspecialchars($search); ?>" placeholder="Cari berdasarkan nama atau asal daerah..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
+  <!-- Card Informasi -->
+  <div class="bg-gradient-to-r from-emerald-800 to-emerald-600 rounded-xl p-6 text-white mb-8 shadow-md">
+    <div class="flex items-start gap-4">
+      <div class="p-3 bg-white bg-opacity-20 rounded-lg flex-shrink-0">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
       </div>
-      <div class="w-full sm:w-48">
-        <select name="kategori" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm bg-white">
-          <option value="">Semua Kategori</option>
-          <?php foreach ($kategoriList as $kat): ?>
-            <option value="<?= htmlspecialchars($kat); ?>" <?= $kategori_filter === $kat ? 'selected' : ''; ?>>
-              <?= htmlspecialchars($kat); ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
+      <div>
+        <h3 class="text-lg font-bold">Informasi Karang Taruna</h3>
+        <p class="text-emerald-100 text-sm mt-1 leading-relaxed">
+          Karang Taruna merupakan wadah kegiatan generasi muda untuk meningkatkan kebersamaan, kepedulian sosial, kreativitas, dan partisipasi dalam lingkungan masyarakat.
+        </p>
       </div>
-      <div class="flex gap-2">
-        <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition">Filter</button>
-        <?php if ($search !== '' || $kategori_filter !== ''): ?>
-          <a href="index.php" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-300 transition">Reset</a>
-        <?php endif; ?>
-      </div>
-    </form>
-  </div>
-
-  <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-    <div class="overflow-x-auto">
-      <table class="w-full text-left text-sm text-gray-600">
-        <thead class="bg-gray-50 border-b border-gray-200 text-gray-700 font-semibold uppercase text-xs">
-          <tr>
-            <th class="px-6 py-3">No</th>
-            <th class="px-6 py-3">Nama Item</th>
-            <th class="px-6 py-3">Kategori</th>
-            <th class="px-6 py-3">Asal Daerah</th>
-            <th class="px-6 py-3 text-center">Stok</th>
-            <th class="px-6 py-3">Harga</th>
-            <th class="px-6 py-3 text-center">Aksi</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100">
-          <?php if (count($items) > 0): ?>
-            <?php foreach ($items as $index => $row): ?>
-              <tr class="hover:bg-gray-50 transition">
-                <td class="px-6 py-4 font-medium text-gray-900"><?= $index + 1; ?></td>
-                <td class="px-6 py-4 font-semibold text-indigo-900"><?= htmlspecialchars($row['nama_item']); ?></td>
-                <td class="px-6 py-4">
-                  <span class="inline-block px-2 py-1 text-xs font-semibold rounded bg-indigo-50 text-indigo-700 border border-indigo-100">
-                    <?= htmlspecialchars($row['kategori']); ?>
-                  </span>
-                </td>
-                <td class="px-6 py-4"><?= htmlspecialchars($row['asal_daerah']); ?></td>
-                <td class="px-6 py-4 text-center font-semibold <?= $row['stok'] < 10 ? 'text-red-500' : 'text-gray-700'; ?>">
-                  <?= number_format($row['stok']); ?>
-                </td>
-                <td class="px-6 py-4 font-medium text-emerald-600">Rp <?= number_format($row['harga'], 0, ',', '.'); ?></td>
-                <td class="px-6 py-4 text-center space-x-2">
-                  <a href="detail.php?id=<?= $row['id']; ?>" class="text-blue-600 hover:text-blue-800 font-medium text-xs bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded transition">Detail</a>
-                  <a href="edit.php?id=<?= $row['id']; ?>" class="text-amber-600 hover:text-amber-800 font-medium text-xs bg-amber-50 hover:bg-amber-100 px-2.5 py-1.5 rounded transition">Edit</a>
-                  <button onclick="confirmDelete(<?= $row['id']; ?>, '<?= htmlspecialchars(addslashes($row['nama_item'])); ?>')" class="text-red-600 hover:text-red-800 font-medium text-xs bg-red-50 hover:bg-red-100 px-2.5 py-1.5 rounded transition">Hapus</button>
-                </td>
-              </tr>
-            <?php endforeach; ?>
-          <?php else: ?>
-            <tr>
-              <td colspan="7" class="px-6 py-8 text-center text-gray-400">Tidak ada data yang ditemukan.</td>
-            </tr>
-          <?php endif; ?>
-        </tbody>
-      </table>
     </div>
   </div>
 
+  <!-- Grid Activity terbaru -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <!-- Kegiatan Terbaru -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-bold text-gray-900">Kegiatan Terbaru</h2>
+        <a href="<?= base_url('kegiatan/index.php') ?>" class="text-xs text-emerald-600 hover:underline font-semibold">Lihat Semua &rarr;</a>
+      </div>
+      <?php if (empty($kegiatan_terbaru)): ?>
+        <p class="text-sm text-gray-500 py-4 text-center">Belum ada data kegiatan.</p>
+      <?php else: ?>
+        <div class="divide-y divide-gray-100">
+          <?php foreach ($kegiatan_terbaru as $k): ?>
+            <div class="py-3 flex justify-between items-center">
+              <div>
+                <h4 class="font-semibold text-gray-800 text-sm"><?= htmlspecialchars($k['nama_kegiatan']) ?></h4>
+                <p class="text-xs text-gray-500"><?= format_tanggal($k['tanggal']) ?> &bull; <?= htmlspecialchars($k['lokasi']) ?></p>
+              </div>
+              <span class="px-2.5 py-1 text-xs rounded-full font-medium 
+                                <?= $k['status'] === 'Selesai' ? 'bg-emerald-100 text-emerald-800' : ($k['status'] === 'Akan Dilaksanakan' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800') ?>">
+                <?= $k['status'] ?>
+              </span>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+    </div>
+
+    <!-- Transaksi Terbaru -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-bold text-gray-900">Transaksi Terbaru</h2>
+        <a href="<?= base_url('keuangan/index.php') ?>" class="text-xs text-emerald-600 hover:underline font-semibold">Lihat Semua &rarr;</a>
+      </div>
+      <?php if (empty($transaksi_terbaru)): ?>
+        <p class="text-sm text-gray-500 py-4 text-center">Belum ada data keuangan.</p>
+      <?php else: ?>
+        <div class="divide-y divide-gray-100">
+          <?php foreach ($transaksi_terbaru as $t): ?>
+            <div class="py-3 flex justify-between items-center">
+              <div>
+                <h4 class="font-semibold text-gray-800 text-sm"><?= htmlspecialchars($t['kategori']) ?></h4>
+                <p class="text-xs text-gray-500"><?= format_tanggal($t['tanggal']) ?> &bull; <?= htmlspecialchars($t['keterangan']) ?></p>
+              </div>
+              <span class="text-sm font-bold <?= $t['jenis'] === 'Pemasukan' ? 'text-emerald-600' : 'text-red-600' ?>">
+                <?= $t['jenis'] === 'Pemasukan' ? '+' : '-' ?> <?= format_rupiah($t['nominal']) ?>
+              </span>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+    </div>
+  </div>
 </main>
 
-<div id="deleteModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50 p-4">
-  <div class="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 text-center transform transition-all">
-    <div class="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-      </svg>
-    </div>
-    <h3 class="text-lg font-bold text-gray-900 mb-1">Konfirmasi Hapus</h3>
-    <p class="text-sm text-gray-500 mb-6">Apakah Anda yakin ingin menghapus <span id="deleteItemName" class="font-semibold text-gray-800"></span>?</p>
-    <div class="flex justify-center space-x-3">
-      <button onclick="closeDeleteModal()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition">Batal</button>
-      <form id="deleteForm" method="POST" action="hapus.php">
-        <input type="hidden" name="id" id="deleteInputId">
-        <button type="submit" id="btnConfirmDelete" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition">Ya, Hapus</button>
-      </form>
-    </div>
-  </div>
-</div>
-
-<div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2"></div>
-
-<?php include 'includes/footer.php'; ?>
+<?php require_once __DIR__ . '/includes/footer.php'; ?>
