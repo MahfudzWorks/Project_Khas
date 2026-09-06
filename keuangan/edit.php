@@ -1,119 +1,83 @@
 <?php
-require_once 'config/database.php';
+require_once __DIR__ . '/../config/database.php';
+$page_title = "Edit Transaksi Keuangan";
 
 $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
-
 if (!$id) {
-  header("Location: index.php");
+  header("Location: " . base_url('keuangan/index.php'));
   exit;
 }
 
-$stmt = $pdo->prepare("SELECT * FROM produk_khas WHERE id = :id");
-$stmt->execute([':id' => $id]);
-$data = $stmt->fetch();
+$stmt = $pdo->prepare("SELECT * FROM keuangan WHERE id = ?");
+$stmt->execute([$id]);
+$keuangan = $stmt->fetch();
 
-if (!$data) {
-  header("Location: index.php");
+if (!$keuangan) {
+  header("Location: " . base_url('keuangan/index.php'));
   exit;
 }
-
-$errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $nama_item   = trim($_POST['nama_item'] ?? '');
-  $kategori    = trim($_POST['kategori'] ?? '');
-  $asal_daerah = trim($_POST['asal_daerah'] ?? '');
-  $stok        = filter_var($_POST['stok'] ?? 0, FILTER_VALIDATE_INT);
-  $harga       = filter_var($_POST['harga'] ?? 0, FILTER_VALIDATE_FLOAT);
-  $deskripsi   = trim($_POST['deskripsi'] ?? '');
+  $tanggal    = $_POST['tanggal'] ?? '';
+  $jenis      = $_POST['jenis'] ?? '';
+  $kategori   = trim($_POST['kategori'] ?? '');
+  $keterangan = trim($_POST['keterangan'] ?? '');
+  $nominal    = filter_input(INPUT_POST, 'nominal', FILTER_VALIDATE_FLOAT);
 
-  if (empty($nama_item)) $errors[] = "Nama item wajib diisi.";
-  if (empty($kategori)) $errors[] = "Kategori wajib diisi.";
-  if (empty($asal_daerah)) $errors[] = "Asal daerah wajib diisi.";
-  if ($stok === false || $stok < 0) $errors[] = "Stok tidak valid.";
-  if ($harga === false || $harga < 0) $errors[] = "Harga tidak valid.";
-
-  if (empty($errors)) {
-    try {
-      $updateStmt = $pdo->prepare("UPDATE produk_khas SET nama_item = :nama, kategori = :kategori, asal_daerah = :asal, stok = :stok, harga = :harga, deskripsi = :deskripsi WHERE id = :id");
-      $updateStmt->execute([
-        ':nama'      => $nama_item,
-        ':kategori'  => $kategori,
-        ':asal'      => $asal_daerah,
-        ':stok'      => $stok,
-        ':harga'     => $harga,
-        ':deskripsi' => $deskripsi,
-        ':id'        => $id
-      ]);
-
-      header("Location: index.php?status=success_edit");
-      exit;
-    } catch (PDOException $e) {
-      $errors[] = "Gagal memperbarui data.";
-    }
+  if (!empty($tanggal) && !empty($jenis) && !empty($kategori) && $nominal > 0) {
+    $stmt = $pdo->prepare("UPDATE keuangan SET tanggal = ?, jenis = ?, kategori = ?, keterangan = ?, nominal = ? WHERE id = ?");
+    $stmt->execute([$tanggal, $jenis, $kategori, $keterangan, $nominal, $id]);
+    header("Location: " . base_url('keuangan/index.php?msg=updated'));
+    exit;
   }
 }
 
-include 'includes/header.php';
-include 'includes/navbar.php';
+require_once __DIR__ . '/../includes/header.php';
+require_once __DIR__ . '/../includes/navbar.php';
 ?>
 
-<main class="max-w-2xl mx-auto px-4 mt-8 flex-grow">
-  <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
-    <div class="mb-6 border-b border-gray-100 pb-4">
-      <h2 class="text-xl font-bold text-gray-800">Edit Data Produk</h2>
-      <p class="text-sm text-gray-500">Perbarui data produk #<?= $data['id']; ?></p>
+<main class="max-w-3xl mx-auto px-4 sm:px-6 py-8 flex-grow">
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Edit Transaksi Keuangan</h1>
+    <p class="text-sm text-gray-600">Perbarui rincian transaksi kas.</p>
+  </div>
+
+  <form method="POST" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4 js-validate-form">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Transaksi *</label>
+        <input type="date" name="tanggal" value="<?= $keuangan['tanggal'] ?>" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-emerald-500 focus:border-emerald-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Jenis Transaksi *</label>
+        <select name="jenis" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-emerald-500 focus:border-emerald-500">
+          <option value="Pemasukan" <?= $keuangan['jenis'] === 'Pemasukan' ? 'selected' : '' ?>>Pemasukan (+)</option>
+          <option value="Pengeluaran" <?= $keuangan['jenis'] === 'Pengeluaran' ? 'selected' : '' ?>>Pengeluaran (-)</option>
+        </select>
+      </div>
     </div>
 
-    <?php if (!empty($errors)): ?>
-      <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded text-sm text-red-700">
-        <ul class="list-disc list-inside">
-          <?php foreach ($errors as $err): ?>
-            <li><?= htmlspecialchars($err); ?></li>
-          <?php endforeach; ?>
-        </ul>
-      </div>
-    <?php endif; ?>
-
-    <form method="POST" action="edit.php?id=<?= $id; ?>" onsubmit="return validateForm(event)" class="space-y-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Nama Item / Produk</label>
-        <input type="text" name="nama_item" id="nama_item" value="<?= htmlspecialchars($data['nama_item']); ?>" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Kategori *</label>
+        <input type="text" name="kategori" value="<?= htmlspecialchars($keuangan['kategori']) ?>" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-emerald-500 focus:border-emerald-500">
       </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
-          <input type="text" name="kategori" id="kategori" value="<?= htmlspecialchars($data['kategori']); ?>" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Asal Daerah</label>
-          <input type="text" name="asal_daerah" id="asal_daerah" value="<?= htmlspecialchars($data['asal_daerah']); ?>" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Stok</label>
-          <input type="number" name="stok" id="stok" min="0" value="<?= htmlspecialchars($data['stok']); ?>" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Harga (Rp)</label>
-          <input type="number" name="harga" id="harga" min="0" step="500" value="<?= htmlspecialchars($data['harga']); ?>" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
-        </div>
-      </div>
-
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Deskripsi Ringkas</label>
-        <textarea name="deskripsi" id="deskripsi" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm"><?= htmlspecialchars($data['deskripsi']); ?></textarea>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Nominal (Rp) *</label>
+        <input type="number" name="nominal" value="<?= $keuangan['nominal'] ?>" min="1" step="any" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-emerald-500 focus:border-emerald-500">
       </div>
+    </div>
 
-      <div class="flex items-center justify-end space-x-3 pt-4 border-t border-gray-100">
-        <a href="index.php" class="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition">Batal</a>
-        <button type="submit" id="btnSubmit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition">Perbarui Data</button>
-      </div>
-    </form>
-  </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Keterangan / Catatan</label>
+      <textarea name="keterangan" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-emerald-500 focus:border-emerald-500"><?= htmlspecialchars($keuangan['keterangan']) ?></textarea>
+    </div>
+
+    <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
+      <a href="<?= base_url('keuangan/index.php') ?>" class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Batal</a>
+      <button type="submit" class="px-5 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700">Perbarui Transaksi</button>
+    </div>
+  </form>
 </main>
 
-<?php include 'includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../includes/footer.php'; ?>
